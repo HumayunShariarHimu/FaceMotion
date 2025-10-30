@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceMotion</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+body {
+    margin: 0;
+    font-family: 'Share Tech Mono', monospace;
+    background-color: #000000;
+    color: #00ff00;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+h1 {
+    margin-bottom: 20px;
+    text-align: center;
+    text-shadow: 0 0 5px #00ff00;
+}
+button {
+    padding: 12px 25px;
+    margin: 10px;
+    background-color: #000;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+button:hover {
+    background-color: #002200;
+    box-shadow: 0 0 10px #00ff00;
+}
+input[type="file"] {
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #00ff00;
+    background-color: #000;
+    color: #00ff00;
+}
+canvas {
+    margin-top: 20px;
+    border: 2px solid #00ff00;
+    border-radius: 10px;
+    max-width: 100%;
+    height: auto;
+}
+#status {
+    margin-top: 15px;
+    font-size: 1.2em;
+    color: #00ff00;
+    text-align: left;
+    width: 100%;
+    max-width: 700px;
+    white-space: pre-line;
+}
+.blink {
+    animation: blink 1s infinite;
+}
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 700px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>FaceMotion</h1>
+<p>Face Emotion Detection with AI</p>
+<button id="loadModelsBtn">> Load Models</button>
+<input type="file" id="imageUpload" accept="image/*" disabled>
+<button id="okBtn" disabled>> OK / Upload</button>
+<button id="analyzeBtn" disabled>> Analyze</button>
+
+<canvas id="canvas"></canvas>
+<div id="status">[SYSTEM] Waiting to Load Models...</div>
+</div>
+
+<!-- face-api.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+const loadModelsBtn = document.getElementById('loadModelsBtn');
+const imageUpload = document.getElementById('imageUpload');
+const okBtn = document.getElementById('okBtn');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const status = document.getElementById('status');
+
+let uploadedImg;
+
+// Helper to log status
+function logStatus(msg) {
+    status.innerText = `[SYSTEM] ${msg}`;
+}
+
+// Load Models
+loadModelsBtn.addEventListener('click', async () => {
+    logStatus("Loading models...");
+    loadModelsBtn.disabled = true;
+    try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models/');
+        await faceapi.nets.faceExpressionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models/');
+        logStatus("Models loaded! Upload a photo to proceed.");
+        imageUpload.disabled = false;
+    } catch(err) {
+        console.error(err);
+        logStatus("Error loading models!");
+        loadModelsBtn.disabled = false;
+    }
+});
+
+// Handle OK/Upload
+okBtn.addEventListener('click', async () => {
+    if(!imageUpload.files[0]) {
+        logStatus("No photo selected. Please choose an image.");
+        return;
+    }
+    uploadedImg = await faceapi.bufferToImage(imageUpload.files[0]);
+    canvas.width = uploadedImg.width;
+    canvas.height = uploadedImg.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(uploadedImg, 0, 0);
+    logStatus("Photo uploaded. Click > Analyze to detect faces and emotions.");
+    analyzeBtn.disabled = false;
+});
+
+// Enable OK button after file select
+imageUpload.addEventListener('change', () => {
+    okBtn.disabled = !imageUpload.files[0];
+});
+
+// Analyze Button
+analyzeBtn.addEventListener('click', async () => {
+    if(!uploadedImg) {
+        logStatus("Please upload a photo first.");
+        return;
+    }
+    logStatus("Analyzing...");
+    const detections = await faceapi.detectAllFaces(uploadedImg, new faceapi.TinyFaceDetectorOptions())
+                                     .withFaceExpressions();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(uploadedImg, 0, 0);
+    faceapi.draw.drawDetections(canvas, detections);
+    faceapi.draw.drawFaceExpressions(canvas, detections);
+
+    if(detections.length > 0){
+        const expressions = detections[0].expressions;
+        const maxEmotion = Object.keys(expressions).reduce((a,b) => expressions[a] > expressions[b] ? a : b);
+        logStatus(`Face detected.\nMost likely emotion: ${maxEmotion}`);
+    } else {
+        logStatus("No face detected.");
+    }
+});
+</script>
+<a href="https://github.com/HumayunShariarHimu" target="_blank" title="Humayun Shahriar Himu">Humayun Shahriar Himu</a>
+</body>
+</html>
