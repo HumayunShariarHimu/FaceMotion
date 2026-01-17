@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceMotion</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --neon:#00ffcc;
+  --bg:#020202;
+  --glass:rgba(0,255,204,0.08);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#050505,#000);
+  color:var(--neon);
+  font-family:'Share Tech Mono',monospace;
+  display:flex;
+  justify-content:center;
+  min-height:100vh;
+}
+
+.container{
+  width:100%;
+  max-width:900px;
+  padding:20px;
+}
+
+h1{
+  text-align:center;
+  text-shadow:0 0 20px var(--neon);
+}
+
+.panel{
+  background:var(--glass);
+  backdrop-filter:blur(10px);
+  border:1px solid var(--neon);
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:15px;
+  box-shadow:0 0 30px rgba(0,255,204,.15);
+}
+
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  justify-content:center;
+}
+
+button{
+  background:transparent;
+  color:var(--neon);
+  border:1px solid var(--neon);
+  padding:12px 20px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:.3s;
+}
+
+button:hover{
+  background:rgba(0,255,204,.15);
+  box-shadow:0 0 20px var(--neon);
+}
+
+button:disabled{
+  opacity:.4;
+  cursor:not-allowed;
+}
+
+.file-btn{
+  position:relative;
+  overflow:hidden;
+}
+
+.file-btn input{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  cursor:pointer;
+}
+
+canvas{
+  width:100%;
+  border-radius:12px;
+  border:1px solid var(--neon);
+}
+
+#status{
+  white-space:pre-line;
+  line-height:1.6;
+  animation:glow 1.5s infinite alternate;
+}
+
+@keyframes glow{
+  from{text-shadow:0 0 5px var(--neon)}
+  to{text-shadow:0 0 18px var(--neon)}
+}
+
+.footer{
+  text-align:center;
+  font-size:12px;
+  opacity:.7;
+}
+
+@media(max-width:600px){
+  button{width:100%}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>FaceMotion</h1>
+
+<div class="panel controls">
+  <button id="load">Load AI Models</button>
+
+  <label class="file-btn">
+    <button>Select Image</button>
+    <input type="file" id="file" accept="image/*" disabled>
+  </label>
+
+  <button id="analyze" disabled>Analyze Emotion</button>
+</div>
+
+<div class="panel">
+  <canvas id="canvas"></canvas>
+</div>
+
+<div class="panel" id="status">
+[SYSTEM] Awaiting initialization...
+</div>
+
+<div class="footer">Developed by Humayun Shahriar Himu</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<script>
+const loadBtn=document.getElementById('load');
+const file=document.getElementById('file');
+const analyzeBtn=document.getElementById('analyze');
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const status=document.getElementById('status');
+
+let img;
+
+const explain={
+ happy:"Positive joy, satisfaction and confidence",
+ sad:"Low mood, emotional pain or reflection",
+ angry:"High arousal, frustration or dominance",
+ fearful:"Stress, anxiety or alert response",
+ disgusted:"Rejection or strong dislike",
+ surprised:"Sudden stimulus or shock",
+ neutral:"Emotionally balanced or controlled"
+};
+
+function log(t){status.innerText="[SYSTEM] "+t}
+
+loadBtn.onclick=async()=>{
+  log("Loading neural networks...");
+  loadBtn.disabled=true;
+  await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models/');
+  await faceapi.nets.faceExpressionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models/');
+  log("Models ready. Select an image.");
+  file.disabled=false;
+};
+
+file.onchange=async()=>{
+  img=await faceapi.bufferToImage(file.files[0]);
+  canvas.width=img.width;
+  canvas.height=img.height;
+  ctx.drawImage(img,0,0);
+  analyzeBtn.disabled=false;
+  log("Image loaded. Ready for analysis.");
+};
+
+analyzeBtn.onclick=async()=>{
+  log("Scanning facial emotional patterns...");
+  const det=await faceapi
+    .detectAllFaces(img,new faceapi.TinyFaceDetectorOptions())
+    .withFaceExpressions();
+
+  ctx.drawImage(img,0,0);
+  faceapi.draw.drawDetections(canvas,det);
+
+if(!det.length){log("No face detected.");return;}
+
+  let report=Faces detected: ${det.length}\n\n;
+
+  det.forEach((d,i)=>{
+    const exp=d.expressions;
+    const sorted=Object.entries(exp).sort((a,b)=>b[1]-a[1]);
+    const [main,sec]=sorted;
+
+    const intensity=main[1]>0.7?"High":main[1]>0.4?"Medium":"Low";
+    const mood=main[0]=="happy"?"Positive":main[0]=="neutral"?"Neutral":"Negative";
+
+    report+=Face ${i+1}
+Dominant: ${main[0]} (${(main[1]*100).toFixed(1)}%)
+Secondary: ${sec[0]} (${(sec[1]*100).toFixed(1)}%)
+Intensity: ${intensity}
+Mood: ${mood}
+Meaning: ${explain[main[0]]}
+
+;
+  });
+
+  log(report);
+};
+</script>
+</body>
+</html>
