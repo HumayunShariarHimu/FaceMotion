@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FaceMotion</title>
+<title>FaceMotion - AI Emotion Detector</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
@@ -24,17 +24,47 @@ body{
   display:flex;
   justify-content:center;
   min-height:100vh;
+  overflow-x: hidden;
+}
+
+/* Modal Styling */
+#modalOverlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #111;
+  padding: 40px;
+  border: 1px solid var(--neon);
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 0 50px rgba(0,255,204,0.2);
 }
 
 .container{
   width:100%;
   max-width:900px;
   padding:20px;
+  opacity: 0.3; /* Hidden until models load */
+  pointer-events: none;
+  transition: 0.5s;
+}
+
+.container.active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 h1{
   text-align:center;
   text-shadow:0 0 20px var(--neon);
+  letter-spacing: 2px;
 }
 
 .panel{
@@ -58,25 +88,30 @@ button{
   background:transparent;
   color:var(--neon);
   border:1px solid var(--neon);
-  padding:12px 20px;
+  padding:12px 25px;
   border-radius:8px;
+  font-family: inherit;
+  font-weight: bold;
   cursor:pointer;
   transition:.3s;
 }
 
-button:hover{
+button:hover:not(:disabled){
   background:rgba(0,255,204,.15);
   box-shadow:0 0 20px var(--neon);
+  transform: translateY(-2px);
 }
 
 button:disabled{
-  opacity:.4;
+  opacity:.3;
+  border-color: #444;
+  color: #444;
   cursor:not-allowed;
 }
 
 .file-btn{
   position:relative;
-  overflow:hidden;
+  display: inline-block;
 }
 
 .file-btn input{
@@ -88,135 +123,177 @@ button:disabled{
 
 canvas{
   width:100%;
+  height: auto;
   border-radius:12px;
   border:1px solid var(--neon);
+  background: #000;
 }
 
 #status{
   white-space:pre-line;
   line-height:1.6;
-  animation:glow 1.5s infinite alternate;
+  min-height: 50px;
 }
 
-@keyframes glow{
-  from{text-shadow:0 0 5px var(--neon)}
-  to{text-shadow:0 0 18px var(--neon)}
+.loading-spinner {
+  border: 4px solid rgba(0,255,204,0.1);
+  border-left: 4px solid var(--neon);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+  display: none;
 }
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .footer{
   text-align:center;
   font-size:12px;
   opacity:.7;
-}
-
-@media(max-width:600px){
-  button{width:100%}
+  margin-top: 20px;
 }
 </style>
 </head>
 
 <body>
-<div class="container">
 
-<h1>FaceMotion</h1>
-
-<div class="panel controls">
-  <button id="load">Load AI Models</button>
-
-  <label class="file-btn">
-    <button>Select Image</button>
-    <input type="file" id="file" accept="image/*" disabled>
-  </label>
-
-  <button id="analyze" disabled>Analyze Emotion</button>
+<div id="modalOverlay">
+  <div class="modal-content">
+    <h2>SYSTEM INITIALIZATION</h2>
+    <p>AI Models Are Required For Facial Recognition.</p>
+    <div id="spinner" class="loading-spinner"></div>
+    <button id="loadModelsBtn">INITIALIZE AI MODELS</button>
+  </div>
 </div>
 
-<div class="panel">
-  <canvas id="canvas"></canvas>
-</div>
+<div class="container" id="mainApp">
+  <h1>FACEMOTION ENGINE</h1>
 
-<div class="panel" id="status">
-[SYSTEM] Awaiting initialization...
-</div>
+  <div class="panel controls">
+    <div class="file-btn">
+      <button id="selectBtn">SELECT IMAGE</button>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+    
+    <button id="analyzeBtn" disabled>ANALYZE EMOTIONS</button>
+  </div>
 
-<div class="footer">Developed by Humayun Shahriar Himu</div>
+  <div class="panel">
+    <canvas id="canvas"></canvas>
+  </div>
 
+  <div class="panel" id="status">
+    [SYSTEM] Status: Models Loaded. Ready For Input Image...
+  </div>
+
+  <div class="footer">Developed by Humayun Shahriar Himu</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
 <script>
-const loadBtn=document.getElementById('load');
-const file=document.getElementById('file');
-const analyzeBtn=document.getElementById('analyze');
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d');
-const status=document.getElementById('status');
+const loadModelsBtn = document.getElementById('loadModelsBtn');
+const modalOverlay = document.getElementById('modalOverlay');
+const mainApp = document.getElementById('mainApp');
+const spinner = document.getElementById('spinner');
+const fileInput = document.getElementById('fileInput');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusDiv = document.getElementById('status');
 
-let img;
+let loadedImg;
 
-const explain={
- happy:"Positive joy, satisfaction and confidence",
- sad:"Low mood, emotional pain or reflection",
- angry:"High arousal, frustration or dominance",
- fearful:"Stress, anxiety or alert response",
- disgusted:"Rejection or strong dislike",
- surprised:"Sudden stimulus or shock",
- neutral:"Emotionally balanced or controlled"
+const explain = {
+  happy: "Positive joy, satisfaction and confidence",
+  sad: "Low mood, emotional pain or reflection",
+  angry: "High arousal, frustration or dominance",
+  fearful: "Stress, anxiety or alert response",
+  disgusted: "Rejection or strong dislike",
+  surprised: "Sudden stimulus or shock",
+  neutral: "Emotionally balanced or controlled"
 };
 
-function log(t){status.innerText="[SYSTEM] "+t}
+function log(t) { statusDiv.innerText = "[SYSTEM] " + t; }
 
-loadBtn.onclick=async()=>{
-  log("Loading neural networks...");
-  loadBtn.disabled=true;
-  await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models/');
-  await faceapi.nets.faceExpressionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models/');
-  log("Models ready. Select an image.");
-  file.disabled=false;
+// 1. Model Loading via Modal
+loadModelsBtn.onclick = async () => {
+  loadModelsBtn.style.display = 'none';
+  spinner.style.display = 'block';
+  log("Initializing Neural Networks...");
+
+  try {
+    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models/';
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+    
+    // On Success
+    modalOverlay.style.display = 'none';
+    mainApp.classList.add('active');
+    log("Ready. Please select an image to begin.");
+  } catch (err) {
+    alert("Error loading models. Please check your internet connection.");
+    loadModelsBtn.style.display = 'block';
+    spinner.style.display = 'none';
+  }
 };
 
-file.onchange=async()=>{
-  img=await faceapi.bufferToImage(file.files[0]);
-  canvas.width=img.width;
-  canvas.height=img.height;
-  ctx.drawImage(img,0,0);
-  analyzeBtn.disabled=false;
-  log("Image loaded. Ready for analysis.");
+// 2. Image Selection
+fileInput.onchange = async (e) => {
+  if(!e.target.files[0]) return;
+  
+  log("Processing image...");
+  loadedImg = await faceapi.bufferToImage(e.target.files[0]);
+  
+  // Canvas Setup
+  canvas.width = loadedImg.width;
+  canvas.height = loadedImg.height;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(loadedImg, 0, 0);
+  
+  analyzeBtn.disabled = false;
+  log("Image loaded. Press 'Analyze' to scan emotions.");
 };
 
-analyzeBtn.onclick=async()=>{
+// 3. Emotion Analysis
+analyzeBtn.onclick = async () => {
   log("Scanning facial emotional patterns...");
-  const det=await faceapi
-    .detectAllFaces(img,new faceapi.TinyFaceDetectorOptions())
+  analyzeBtn.disabled = true;
+
+  const detections = await faceapi
+    .detectAllFaces(loadedImg, new faceapi.TinyFaceDetectorOptions())
     .withFaceExpressions();
 
-  ctx.drawImage(img,0,0);
-  faceapi.draw.drawDetections(canvas,det);
+  // Redraw image to clear previous boxes
+  ctx.drawImage(loadedImg, 0, 0);
+  faceapi.draw.drawDetections(canvas, detections);
 
-if(!det.length){log("No face detected.");return;}
+  if (!detections.length) {
+    log("No facial patterns detected. Try another image.");
+    analyzeBtn.disabled = false;
+    return;
+  }
 
-  let report=Faces detected: ${det.length}\n\n;
+  let report = `Total Faces Detected: ${detections.length}\n\n`;
 
-  det.forEach((d,i)=>{
-    const exp=d.expressions;
-    const sorted=Object.entries(exp).sort((a,b)=>b[1]-a[1]);
-    const [main,sec]=sorted;
+  detections.forEach((det, i) => {
+    const exp = det.expressions;
+    const sorted = Object.entries(exp).sort((a, b) => b[1] - a[1]);
+    const [main, sec] = sorted;
 
-    const intensity=main[1]>0.7?"High":main[1]>0.4?"Medium":"Low";
-    const mood=main[0]=="happy"?"Positive":main[0]=="neutral"?"Neutral":"Negative";
-
-    report+=Face ${i+1}
-Dominant: ${main[0]} (${(main[1]*100).toFixed(1)}%)
-Secondary: ${sec[0]} (${(sec[1]*100).toFixed(1)}%)
-Intensity: ${intensity}
-Mood: ${mood}
-Meaning: ${explain[main[0]]}
-
-;
+    const intensity = main[1] > 0.7 ? "High" : main[1] > 0.4 ? "Medium" : "Low";
+    
+    report += `[FACE #${i+1}]\n`;
+    report += `Primary: ${main[0].toUpperCase()} (${(main[1]*100).toFixed(1)}%)\n`;
+    report += `Secondary: ${sec[0]} (${(sec[1]*100).toFixed(1)}%)\n`;
+    report += `Intensity: ${intensity}\n`;
+    report += `Insight: ${explain[main[0]]}\n\n`;
   });
 
   log(report);
+  analyzeBtn.disabled = false;
 };
 </script>
 </body>
