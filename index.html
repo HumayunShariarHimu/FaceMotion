@@ -3,157 +3,217 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FaceMotion</title>
+<title>FaceMotion AI - Professional Suite</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
 
 <style>
-:root{
-  --neon:#00ffcc;
-  --bg:#020202;
-  --glass:rgba(0,255,204,0.08);
+:root {
+  --neon: #00f2ff;
+  --neon-secondary: #7000ff;
+  --bg: #0a0b10;
+  --glass: rgba(255, 255, 255, 0.03);
+  --border: rgba(0, 242, 255, 0.3);
 }
 
-*{box-sizing:border-box}
+* { box-sizing: border-box; transition: all 0.3s ease; }
 
-body{
-  margin:0;
-  background:radial-gradient(circle at top,#050505,#000);
-  color:var(--neon);
-  font-family:'Share Tech Mono',monospace;
-  display:flex;
-  justify-content:center;
-  min-height:100vh;
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(112, 0, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(0, 242, 255, 0.1) 0%, transparent 50%);
+  color: #e0e0e0;
+  font-family: 'Rajdhani', sans-serif;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* Modal Styling */
+/* Modal UI */
 #modalOverlay {
   position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.9);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .modal-content {
-  background: #111;
-  padding: 40px;
+  background: var(--glass);
+  padding: 50px;
   border: 1px solid var(--neon);
-  border-radius: 15px;
+  border-radius: 20px;
   text-align: center;
-  box-shadow: 0 0 50px rgba(0,255,204,0.2);
+  box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
 }
 
-.container{
-  width:100%;
-  max-width:900px;
-  padding:20px;
-  opacity: 0.3; /* Hidden until models load */
-  pointer-events: none;
-  transition: 0.5s;
+.modal-content h2 {
+  font-family: 'Orbitron', sans-serif;
+  color: var(--neon);
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+}
+
+/* Container & Layout */
+.container {
+  width: 100%;
+  max-width: 1100px;
+  padding: 20px;
+  opacity: 0;
+  transform: translateY(20px);
 }
 
 .container.active {
   opacity: 1;
-  pointer-events: auto;
+  transform: translateY(0);
 }
 
-h1{
-  text-align:center;
-  text-shadow:0 0 20px var(--neon);
-  letter-spacing: 2px;
+header {
+  text-align: center;
+  margin-bottom: 30px;
 }
 
-.panel{
-  background:var(--glass);
-  backdrop-filter:blur(10px);
-  border:1px solid var(--neon);
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:15px;
-  box-shadow:0 0 30px rgba(0,255,204,.15);
+header h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5rem;
+  color: var(--neon);
+  margin: 0;
+  text-shadow: 0 0 15px var(--neon);
 }
 
-.controls{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px;
-  justify-content:center;
+/* Dashboard Grid */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 20px;
 }
 
-button{
-  background:transparent;
-  color:var(--neon);
-  border:1px solid var(--neon);
-  padding:12px 25px;
-  border-radius:8px;
-  font-family: inherit;
-  font-weight: bold;
-  cursor:pointer;
-  transition:.3s;
+@media (max-width: 900px) {
+  .dashboard { grid-template-columns: 1fr; }
 }
 
-button:hover:not(:disabled){
-  background:rgba(0,255,204,.15);
-  box-shadow:0 0 20px var(--neon);
-  transform: translateY(-2px);
+.panel {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
 }
 
-button:disabled{
-  opacity:.3;
-  border-color: #444;
-  color: #444;
-  cursor:not-allowed;
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 4px; height: 100%;
+  background: var(--neon);
 }
 
-.file-btn{
-  position:relative;
-  display: inline-block;
-}
-
-.file-btn input{
-  position:absolute;
-  inset:0;
-  opacity:0;
-  cursor:pointer;
-}
-
-canvas{
-  width:100%;
-  height: auto;
-  border-radius:12px;
-  border:1px solid var(--neon);
+/* Canvas Area */
+.canvas-container {
+  position: relative;
+  width: 100%;
   background: #000;
+  border-radius: 10px;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-#status{
-  white-space:pre-line;
-  line-height:1.6;
-  min-height: 50px;
+canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: 5px;
 }
 
-.loading-spinner {
-  border: 4px solid rgba(0,255,204,0.1);
-  border-left: 4px solid var(--neon);
+/* Controls */
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+button {
+  background: transparent;
+  color: var(--neon);
+  border: 1px solid var(--neon);
+  padding: 12px 15px;
+  border-radius: 5px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+button:hover:not(:disabled) {
+  background: var(--neon);
+  color: #000;
+  box-shadow: 0 0 20px var(--neon);
+}
+
+button:disabled { opacity: 0.3; cursor: not-allowed; border-color: #555; }
+
+/* Result Stats */
+.stat-row {
+  margin-bottom: 15px;
+}
+
+.stat-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.progress-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--neon);
+  width: 0%;
+  box-shadow: 0 0 10px var(--neon);
+}
+
+.status-log {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #888;
+  height: 120px;
+  overflow-y: auto;
+  padding: 10px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 5px;
+}
+
+/* Loading Animation */
+.loader {
+  width: 40px; height: 40px;
+  border: 3px solid transparent;
+  border-top-color: var(--neon);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
   animation: spin 1s linear infinite;
   margin: 20px auto;
-  display: none;
 }
 
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.footer{
-  text-align:center;
-  font-size:12px;
-  opacity:.7;
-  margin-top: 20px;
-}
 </style>
 </head>
 
@@ -162,33 +222,63 @@ canvas{
 <div id="modalOverlay">
   <div class="modal-content">
     <h2>FaceMotion</h2>
-    <p>AI Models Are Required For Facial Recognition.</p>
-    <div id="spinner" class="loading-spinner"></div>
-    <button id="loadModelsBtn">INITIALIZE AI MODELS</button>
+    <p>Loading Neural Engines for Bio-Analysis...</p>
+    <div id="spinner" class="loader" style="display:none;"></div>
+    <center>
+    <button id="loadModelsBtn">Initialize System</button>
+    </center>
   </div>
 </div>
 
 <div class="container" id="mainApp">
-  <h1>FaceMotion</h1>
+  <header>
+    <h1>FaceMotion<span style="font-weight:300; font-size: 1rem;"></span></h1>
+  </header>
 
-  <div class="panel controls">
-    <div class="file-btn">
-      <button id="selectBtn">SELECT IMAGE</button>
-      <input type="file" id="fileInput" accept="image/*">
+  <div class="dashboard">
+    <div class="main-col">
+      <div class="panel controls-grid">
+        <button onclick="document.getElementById('fileInput').click()">
+          📂 UPLOAD IMAGE
+        </button>
+        <input type="file" id="fileInput" hidden accept="image/*">
+        
+        <button id="analyzeBtn" disabled>
+          ⚡ RUN ANALYSIS
+        </button>
+
+        <button id="downloadBtn" disabled>
+          💾 EXPORT DATA
+        </button>
+      </div>
+
+      <div class="panel">
+        <div class="canvas-container">
+          <canvas id="canvas"></canvas>
+        </div>
+      </div>
     </div>
-    
-    <button id="analyzeBtn" disabled>ANALYZE EMOTIONS</button>
+
+    <div class="side-col">
+      <div class="panel">
+        <h3 style="margin-top:0; color:var(--neon)">ANALYTICS REPORT</h3>
+        <div id="statsContainer">
+          <p style="color:#666">No face detected yet.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top:0; font-size: 0.9rem;">SYSTEM LOGS</h3>
+        <div class="status-log" id="status">
+          > System Standby...
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="panel">
-    <canvas id="canvas"></canvas>
+  <div style="text-align:center; padding: 20px; font-size: 0.8rem; color: #444;">
+    FaceMotion © Humayun Shariar Himu
   </div>
-
-  <div class="panel" id="status">
-    [SYSTEM] Status: Models Loaded. Ready For Input Image...
-  </div>
-
-  <div class="footer">Developed by Humayun Shahriar Himu</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -200,101 +290,113 @@ const mainApp = document.getElementById('mainApp');
 const spinner = document.getElementById('spinner');
 const fileInput = document.getElementById('fileInput');
 const analyzeBtn = document.getElementById('analyzeBtn');
+const downloadBtn = document.getElementById('downloadBtn');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const statusDiv = document.getElementById('status');
+const statsContainer = document.getElementById('statsContainer');
 
 let loadedImg;
 
-const explain = {
-  happy: "Positive joy, satisfaction and confidence",
-  sad: "Low mood, emotional pain or reflection",
-  angry: "High arousal, frustration or dominance",
-  fearful: "Stress, anxiety or alert response",
-  disgusted: "Rejection or strong dislike",
-  surprised: "Sudden stimulus or shock",
-  neutral: "Emotionally balanced or controlled"
-};
+function log(msg) {
+  const time = new Date().toLocaleTimeString();
+  statusDiv.innerHTML += `<div><span style="color:var(--neon)">[${time}]</span> ${msg}</div>`;
+  statusDiv.scrollTop = statusDiv.scrollHeight;
+}
 
-function log(t) { statusDiv.innerText = "[SYSTEM] " + t; }
-
-// 1. Model Loading via Modal
+// 1. Initialize AI
 loadModelsBtn.onclick = async () => {
   loadModelsBtn.style.display = 'none';
   spinner.style.display = 'block';
-  log("Initializing Neural Networks...");
+  log("Downloading AI weights...");
 
   try {
     const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models/';
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
     await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
     
-    // On Success
-    modalOverlay.style.display = 'none';
-    mainApp.classList.add('active');
-    log("Ready. Please Select An Image To Begin...");
+    modalOverlay.style.opacity = '0';
+    setTimeout(() => {
+      modalOverlay.style.display = 'none';
+      mainApp.classList.add('active');
+    }, 500);
+    log("Neural networks online.");
   } catch (err) {
-    alert("Error Loading Models. Please Check Your Internet Connection.");
-    loadModelsBtn.style.display = 'block';
-    spinner.style.display = 'none';
+    alert("System Failure: Check Internet Connection.");
   }
 };
 
-// 2. Image Selection
+// 2. Image Handling
 fileInput.onchange = async (e) => {
   if(!e.target.files[0]) return;
   
-  log("Processing image...");
+  log("Importing visual data...");
   loadedImg = await faceapi.bufferToImage(e.target.files[0]);
   
-  // Canvas Setup
   canvas.width = loadedImg.width;
   canvas.height = loadedImg.height;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(loadedImg, 0, 0);
   
   analyzeBtn.disabled = false;
-  log("Image Loaded. Press 'Analyze' To Scan Emotions.");
+  log("Image imported successfully.");
 };
 
-// 3. Emotion Analysis
+// 3. Analysis Logic
 analyzeBtn.onclick = async () => {
-  log("Scanning Facial Emotional Patterns...");
+  log("Scanning biometric markers...");
   analyzeBtn.disabled = true;
 
   const detections = await faceapi
     .detectAllFaces(loadedImg, new faceapi.TinyFaceDetectorOptions())
     .withFaceExpressions();
 
-  // Redraw image to clear previous boxes
   ctx.drawImage(loadedImg, 0, 0);
-  faceapi.draw.drawDetections(canvas, detections);
-
+  
   if (!detections.length) {
-    log("No facial patterns detected. Try another image.");
+    log("ERROR: No human face found.");
     analyzeBtn.disabled = false;
     return;
   }
 
-  let report = `Total Faces Detected: ${detections.length}\n\n`;
-
-  detections.forEach((det, i) => {
-    const exp = det.expressions;
-    const sorted = Object.entries(exp).sort((a, b) => b[1] - a[1]);
-    const [main, sec] = sorted;
-
-    const intensity = main[1] > 0.7 ? "High" : main[1] > 0.4 ? "Medium" : "Low";
-    
-    report += `[FACE #${i+1}]\n`;
-    report += `Primary: ${main[0].toUpperCase()} (${(main[1]*100).toFixed(1)}%)\n`;
-    report += `Secondary: ${sec[0]} (${(sec[1]*100).toFixed(1)}%)\n`;
-    report += `Intensity: ${intensity}\n`;
-    report += `Insight: ${explain[main[0]]}\n\n`;
-  });
-
-  log(report);
+  faceapi.draw.drawDetections(canvas, detections);
+  updateStats(detections[0].expressions);
+  
+  log(`Analysis complete. Detected ${detections.length} subject(s).`);
   analyzeBtn.disabled = false;
+  downloadBtn.disabled = false;
 };
+
+// 4. Detailed Stats UI
+function updateStats(expressions) {
+  statsContainer.innerHTML = '';
+  const sorted = Object.entries(expressions).sort((a,b) => b[1] - a[1]);
+
+  sorted.forEach(([emotion, value]) => {
+    const percentage = (value * 100).toFixed(1);
+    const html = `
+      <div class="stat-row">
+        <div class="stat-label">
+          <span>${emotion}</span>
+          <span>${percentage}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${percentage}%"></div>
+        </div>
+      </div>
+    `;
+    statsContainer.innerHTML += html;
+  });
+}
+
+// 5. Download Feature
+downloadBtn.onclick = () => {
+  const link = document.createElement('a');
+  link.download = 'FaceMotion-Analysis.png';
+  link.href = canvas.toDataURL();
+  link.click();
+  log("Exporting report...");
+};
+
 </script>
 </body>
 </html>
