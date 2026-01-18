@@ -1,402 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FaceMotion AI - Professional Suite</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceMotion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --bg: #0a0b10;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(0, 242, 255, 0.3);
+        }
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+        * { box-sizing: border-box; transition: all 0.3s ease; }
 
-<style>
-:root {
-  --neon: #00f2ff;
-  --neon-secondary: #7000ff;
-  --bg: #0a0b10;
-  --glass: rgba(255, 255, 255, 0.03);
-  --border: rgba(0, 242, 255, 0.3);
-}
+        body {
+            margin: 0;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 20% 30%, rgba(112, 0, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(0, 242, 255, 0.1) 0%, transparent 50%);
+            color: #e0e0e0;
+            font-family: 'Rajdhani', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-* { box-sizing: border-box; transition: all 0.3s ease; }
+        #modalOverlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.95);
+            display: flex; justify-content: center; align-items: center; z-index: 2000;
+        }
 
-body {
-  margin: 0;
-  background-color: var(--bg);
-  background-image: 
-    radial-gradient(circle at 20% 30%, rgba(112, 0, 255, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(0, 242, 255, 0.1) 0%, transparent 50%);
-  color: #e0e0e0;
-  font-family: 'Rajdhani', sans-serif;
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+        .modal-content {
+            background: var(--glass); padding: 40px; border: 1px solid var(--neon);
+            border-radius: 20px; text-align: center; box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+        }
 
-/* Modal UI */
-#modalOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(10px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
+        .container { width: 100%; max-width: 1200px; padding: 20px; opacity: 0; transform: translateY(20px); }
+        .container.active { opacity: 1; transform: translateY(0); }
 
-.modal-content {
-  background: var(--glass);
-  padding: 50px;
-  border: 1px solid var(--neon);
-  border-radius: 20px;
-  text-align: center;
-  box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
-}
+        header h1 { font-family: 'Orbitron'; text-align: center; color: var(--neon); text-shadow: 0 0 15px var(--neon); }
 
-.modal-content h2 {
-  font-family: 'Orbitron', sans-serif;
-  color: var(--neon);
-  margin-bottom: 20px;
-  letter-spacing: 2px;
-}
+        .dashboard { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+        @media (max-width: 1000px) { .dashboard { grid-template-columns: 1fr; } }
 
-/* Container & Layout */
-.container {
-  width: 100%;
-  max-width: 1100px;
-  padding: 20px;
-  opacity: 0;
-  transform: translateY(20px);
-}
+        .panel { background: var(--glass); border: 1px solid var(--border); border-radius: 15px; padding: 20px; backdrop-filter: blur(12px); margin-bottom: 20px; position: relative; }
+        .panel::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--neon); }
 
-.container.active {
-  opacity: 1;
-  transform: translateY(0);
-}
+        .canvas-container { width: 100%; background: #000; border-radius: 10px; overflow: hidden; display: flex; justify-content: center; border: 1px solid #222; }
+        canvas { max-width: 100%; height: auto; }
 
-header {
-  text-align: center;
-  margin-bottom: 30px;
-}
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+        button { background: transparent; color: var(--neon); border: 1px solid var(--neon); padding: 12px; border-radius: 5px; font-family: 'Orbitron'; cursor: pointer; font-size: 0.8rem; }
+        button:hover:not(:disabled) { background: var(--neon); color: #000; box-shadow: 0 0 20px var(--neon); }
+        button:disabled { opacity: 0.2; cursor: not-allowed; }
 
-header h1 {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 2.5rem;
-  color: var(--neon);
-  margin: 0;
-  text-shadow: 0 0 15px var(--neon);
-}
+        .face-card { border-left: 3px solid var(--neon); background: rgba(0, 242, 255, 0.05); padding: 15px; margin-bottom: 12px; border-radius: 0 10px 10px 0; }
+        .face-card h4 { margin: 0 0 8px 0; color: var(--neon); font-family: 'Orbitron'; font-size: 0.85rem; }
 
-/* Dashboard Grid */
-.dashboard {
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 20px;
-}
+        .stat-row { margin-bottom: 6px; }
+        .stat-label { display: flex; justify-content: space-between; font-size: 0.75rem; }
+        .progress-bar { height: 4px; background: rgba(255,255,255,0.1); margin-top: 3px; }
+        .progress-fill { height: 100%; background: var(--neon); box-shadow: 0 0 5px var(--neon); }
 
-@media (max-width: 900px) {
-  .dashboard { grid-template-columns: 1fr; }
-}
-
-.panel {
-  background: var(--glass);
-  border: 1px solid var(--border);
-  border-radius: 15px;
-  padding: 20px;
-  backdrop-filter: blur(12px);
-  position: relative;
-  overflow: hidden;
-}
-
-.panel::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; width: 4px; height: 100%;
-  background: var(--neon);
-}
-
-/* Canvas Area */
-.canvas-container {
-  position: relative;
-  width: 100%;
-  background: #000;
-  border-radius: 10px;
-  min-height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-canvas {
-  max-width: 100%;
-  height: auto;
-  border-radius: 5px;
-}
-
-/* Controls */
-.controls-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-button {
-  background: transparent;
-  color: var(--neon);
-  border: 1px solid var(--neon);
-  padding: 12px 15px;
-  border-radius: 5px;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.8rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-button:hover:not(:disabled) {
-  background: var(--neon);
-  color: #000;
-  box-shadow: 0 0 20px var(--neon);
-}
-
-button:disabled { opacity: 0.3; cursor: not-allowed; border-color: #555; }
-
-/* Result Stats */
-.stat-row {
-  margin-bottom: 15px;
-}
-
-.stat-label {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-}
-
-.progress-bar {
-  height: 6px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--neon);
-  width: 0%;
-  box-shadow: 0 0 10px var(--neon);
-}
-
-.status-log {
-  font-family: 'Courier New', monospace;
-  font-size: 0.85rem;
-  color: #888;
-  height: 120px;
-  overflow-y: auto;
-  padding: 10px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 5px;
-}
-
-/* Loading Animation */
-.loader {
-  width: 40px; height: 40px;
-  border: 3px solid transparent;
-  border-top-color: var(--neon);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-</style>
+        .status-log { font-family: 'Courier New', monospace; font-size: 0.75rem; color: #666; height: 80px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
+        .loader { width: 40px; height: 40px; border: 3px solid transparent; border-top-color: var(--neon); border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
-
 <body>
 
 <div id="modalOverlay">
-  <div class="modal-content">
-    <h2>FaceMotion</h2>
-    <p>Loading Neural Engines for Bio-Analysis...</p>
-    <div id="spinner" class="loader" style="display:none;"></div>
-    <center>
-    <button id="loadModelsBtn">Initialize System</button>
-    </center>
-  </div>
+    <div class="modal-content">
+        <h2>FaceMotion</h2>
+        <p>Loading Biometric Neural Networks...</p>
+        <div id="spinner" class="loader"></div>
+        <button id="loadModelsBtn" style="display:none">INITIALIZE</button>
+    </div>
 </div>
 
 <div class="container" id="mainApp">
-  <header>
-    <h1>FaceMotion<span style="font-weight:300; font-size: 1rem;"></span></h1>
-  </header>
-
-  <div class="dashboard">
-    <div class="main-col">
-      <div class="panel controls-grid">
-        <button onclick="document.getElementById('fileInput').click()">
-          📂 UPLOAD IMAGE
-        </button>
-        <input type="file" id="fileInput" hidden accept="image/*">
-        
-        <button id="analyzeBtn" disabled>
-          ⚡ RUN ANALYSIS
-        </button>
-
-        <button id="downloadBtn" disabled>
-          💾 EXPORT DATA
-        </button>
-      </div>
-
-      <div class="panel">
-        <div class="canvas-container">
-          <canvas id="canvas"></canvas>
+    <header><h1>FaceMotion <span style="font-weight:300"></span></h1></header>
+    <div class="dashboard">
+        <div class="main-col">
+            <div class="panel controls-grid">
+                <button onclick="document.getElementById('fileInput').click()">📂 UPLOAD</button>
+                <input type="file" id="fileInput" hidden accept="image/*">
+                <button id="analyzeBtn" disabled>⚡ ANALYZE</button>
+                <button id="downloadBtn" disabled>💾 EXPORT</button>
+            </div>
+            <div class="panel">
+                <div class="canvas-container"><canvas id="canvas"></canvas></div>
+            </div>
         </div>
-      </div>
+        <div class="side-col">
+            <div class="panel" style="max-height: 550px; overflow-y: auto;">
+                <h3 style="margin:0 0 15px 0; color:var(--neon); font-family:'Orbitron'; font-size:1rem;">BIO-ANALYTICS</h3>
+                <div id="statsContainer"><p style="color:#444">Waiting for input...</p></div>
+            </div>
+            <div class="panel">
+                <div class="status-log" id="status">> System Online.</div>
+            </div>
+        </div>
     </div>
-
-    <div class="side-col">
-      <div class="panel">
-        <h3 style="margin-top:0; color:var(--neon)">ANALYTICS REPORT</h3>
-        <div id="statsContainer">
-          <p style="color:#666">No face detected yet.</p>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h3 style="margin-top:0; font-size: 0.9rem;">SYSTEM LOGS</h3>
-        <div class="status-log" id="status">
-          > System Standby...
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div style="text-align:center; padding: 20px; font-size: 0.8rem; color: #444;">
-    FaceMotion © Humayun Shariar Himu
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-
 <script>
-const loadModelsBtn = document.getElementById('loadModelsBtn');
-const modalOverlay = document.getElementById('modalOverlay');
-const mainApp = document.getElementById('mainApp');
-const spinner = document.getElementById('spinner');
-const fileInput = document.getElementById('fileInput');
-const analyzeBtn = document.getElementById('analyzeBtn');
-const downloadBtn = document.getElementById('downloadBtn');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const statusDiv = document.getElementById('status');
-const statsContainer = document.getElementById('statsContainer');
-
-let loadedImg;
-
-function log(msg) {
-  const time = new Date().toLocaleTimeString();
-  statusDiv.innerHTML += `<div><span style="color:var(--neon)">[${time}]</span> ${msg}</div>`;
-  statusDiv.scrollTop = statusDiv.scrollHeight;
-}
-
-// 1. Initialize AI
-loadModelsBtn.onclick = async () => {
-  loadModelsBtn.style.display = 'none';
-  spinner.style.display = 'block';
-  log("Downloading AI weights...");
-
-  try {
-    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models/';
-    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+    const loadModelsBtn = document.getElementById('loadModelsBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const mainApp = document.getElementById('mainApp');
+    const fileInput = document.getElementById('fileInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statsContainer = document.getElementById('statsContainer');
+    const statusDiv = document.getElementById('status');
     
-    modalOverlay.style.opacity = '0';
-    setTimeout(() => {
-      modalOverlay.style.display = 'none';
-      mainApp.classList.add('active');
-    }, 500);
-    log("Neural networks online.");
-  } catch (err) {
-    alert("System Failure: Check Internet Connection.");
-  }
-};
+    let loadedImg;
+    let lastDetections = [];
 
-// 2. Image Handling
-fileInput.onchange = async (e) => {
-  if(!e.target.files[0]) return;
-  
-  log("Importing visual data...");
-  loadedImg = await faceapi.bufferToImage(e.target.files[0]);
-  
-  canvas.width = loadedImg.width;
-  canvas.height = loadedImg.height;
-  ctx.drawImage(loadedImg, 0, 0);
-  
-  analyzeBtn.disabled = false;
-  log("Image imported successfully.");
-};
+    function log(msg) {
+        statusDiv.innerHTML += `<div>> ${msg}</div>`;
+        statusDiv.scrollTop = statusDiv.scrollHeight;
+    }
 
-// 3. Analysis Logic
-analyzeBtn.onclick = async () => {
-  log("Scanning biometric markers...");
-  analyzeBtn.disabled = true;
+    window.onload = async () => {
+        try {
+            const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models/';
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+            document.getElementById('spinner').style.display = 'none';
+            loadModelsBtn.style.display = 'inline-block';
+        } catch (e) { log("Model load failed."); }
+    };
 
-  const detections = await faceapi
-    .detectAllFaces(loadedImg, new faceapi.TinyFaceDetectorOptions())
-    .withFaceExpressions();
+    loadModelsBtn.onclick = () => {
+        modalOverlay.style.display = 'none';
+        mainApp.classList.add('active');
+        log("Neural Engine Active.");
+    };
 
-  ctx.drawImage(loadedImg, 0, 0);
-  
-  if (!detections.length) {
-    log("ERROR: No human face found.");
-    analyzeBtn.disabled = false;
-    return;
-  }
+    fileInput.onchange = async (e) => {
+        if(!e.target.files[0]) return;
+        loadedImg = await faceapi.bufferToImage(e.target.files[0]);
+        canvas.width = loadedImg.width;
+        canvas.height = loadedImg.height;
+        ctx.drawImage(loadedImg, 0, 0);
+        analyzeBtn.disabled = false;
+        downloadBtn.disabled = true;
+        statsContainer.innerHTML = '<p style="color:var(--neon)">Ready to scan.</p>';
+        log("Visual data buffered.");
+    };
 
-  faceapi.draw.drawDetections(canvas, detections);
-  updateStats(detections[0].expressions);
-  
-  log(`Analysis complete. Detected ${detections.length} subject(s).`);
-  analyzeBtn.disabled = false;
-  downloadBtn.disabled = false;
-};
+    analyzeBtn.onclick = async () => {
+        log("Decrypting biometric patterns...");
+        lastDetections = await faceapi.detectAllFaces(loadedImg, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
+        
+        ctx.drawImage(loadedImg, 0, 0);
+        if (lastDetections.length === 0) {
+            log("Error: Subject not found.");
+            return;
+        }
 
-// 4. Detailed Stats UI
-function updateStats(expressions) {
-  statsContainer.innerHTML = '';
-  const sorted = Object.entries(expressions).sort((a,b) => b[1] - a[1]);
+        statsContainer.innerHTML = '';
+        lastDetections.forEach((face, i) => {
+            const { x, y, width, height } = face.detection.box;
+            
+            // Draw UI on Main Canvas
+            ctx.strokeStyle = '#00f2ff';
+            ctx.lineWidth = Math.max(2, loadedImg.width / 400);
+            ctx.strokeRect(x, y, width, height);
+            
+            ctx.fillStyle = '#00f2ff';
+            const fontSize = Math.max(14, loadedImg.width / 50);
+            ctx.font = `bold ${fontSize}px Orbitron`;
+            ctx.fillText(`ID#${i+1}`, x, y > 20 ? y - 10 : y + 20);
 
-  sorted.forEach(([emotion, value]) => {
-    const percentage = (value * 100).toFixed(1);
-    const html = `
-      <div class="stat-row">
-        <div class="stat-label">
-          <span>${emotion}</span>
-          <span>${percentage}%</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: ${percentage}%"></div>
-        </div>
-      </div>
-    `;
-    statsContainer.innerHTML += html;
-  });
-}
+            renderReportUI(face.expressions, i + 1);
+        });
 
-// 5. Download Feature
-downloadBtn.onclick = () => {
-  const link = document.createElement('a');
-  link.download = 'FaceMotion-Analysis.png';
-  link.href = canvas.toDataURL();
-  link.click();
-  log("Exporting report...");
-};
+        log(`Scan success. Detected: ${lastDetections.length}`);
+        downloadBtn.disabled = false;
+    };
 
+    function renderReportUI(expressions, id) {
+        const sorted = Object.entries(expressions).sort((a,b) => b[1] - a[1]);
+        let cardHtml = `<div class="face-card"><h4>FACE ID#${id} - ${sorted[0][0].toUpperCase()}</h4>`;
+        sorted.slice(0, 3).forEach(([emo, val]) => {
+            const pct = (val * 100).toFixed(1);
+            cardHtml += `<div class="stat-row"><div class="stat-label"><span>${emo}</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div>`;
+        });
+        cardHtml += `</div>`;
+        statsContainer.innerHTML += cardHtml;
+    }
+
+    // এক্সপোর্ট ফাংশন যা ডিটেইলস ডাটা ইমেজে যুক্ত করবে
+    downloadBtn.onclick = () => {
+        log("Generating high-fidelity report...");
+        
+        // ১. একটি অফ-স্ক্রিন ক্যানভাস তৈরি করা (পুরো ডাটা রাখার জন্য)
+        const exportCanvas = document.createElement('canvas');
+        const eCtx = exportCanvas.getContext('2d');
+        
+        const padding = 40;
+        const dataPanelHeight = 100 + (lastDetections.length * 35); // ডাটা অনুযায়ী হাইট
+        
+        exportCanvas.width = canvas.width;
+        exportCanvas.height = canvas.height + dataPanelHeight;
+
+        // ২. ব্যাকগ্রাউন্ড এবং অরিজিনাল ইমেজ ড্র করা
+        eCtx.fillStyle = '#0a0b10';
+        eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+        eCtx.drawImage(canvas, 0, 0);
+
+        // ৩. নিচের ডাটা প্যানেলে টেক্সট লেখা
+        eCtx.fillStyle = '#00f2ff';
+        eCtx.font = `bold ${Math.max(16, canvas.width/40)}px Orbitron`;
+        eCtx.fillText("FACEMOTION AI - BIOMETRIC ANALYSIS REPORT", padding, canvas.height + 40);
+        
+        eCtx.font = `${Math.max(12, canvas.width/60)}px Rajdhani`;
+        eCtx.fillStyle = '#888';
+        eCtx.fillText(`Generated: ${new Date().toLocaleString()} | Subjects: ${lastDetections.length}`, padding, canvas.height + 65);
+
+        lastDetections.forEach((face, i) => {
+            const sorted = Object.entries(face.expressions).sort((a,b) => b[1] - a[1]);
+            const topEmo = sorted[0][0].toUpperCase();
+            const confidence = (sorted[0][1]*100).toFixed(1);
+            
+            eCtx.fillStyle = '#00f2ff';
+            eCtx.font = `bold ${Math.max(12, canvas.width/65)}px Orbitron`;
+            const infoText = `[ID#${i+1}] PRIMARY: ${topExpText(topEmo)} | CONFIDENCE: ${confidence}% | STATUS: VERIFIED`;
+            eCtx.fillText(infoText, padding, canvas.height + 100 + (i * 30));
+        });
+
+        // ৪. ডাউনলোড করা
+        const link = document.createElement('a');
+        link.download = `FaceMotion_Report_${Date.now()}.png`;
+        link.href = exportCanvas.toDataURL('image/png');
+        link.click();
+        log("Export successful.");
+    };
+
+    function topExpText(emo) {
+        return emo === 'NEUTRAL' ? 'STABLE' : emo;
+    }
 </script>
 </body>
 </html>
